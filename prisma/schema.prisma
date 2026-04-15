@@ -1,0 +1,624 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// SQLite stores enums as TEXT; Prisma enforces valid values at the client layer.
+// All data writes MUST go through Prisma Client — never bypass via raw SQL.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Source: Corporate-Loan_Assessment.md §3.1 InstitutionType
+enum InstitutionType {
+  COMMERCIAL_BANK
+  ISLAMIC_BANK
+  DFI
+  GUARANTEE_AGENCY
+  BNM_FUND
+  P2P_PLATFORM
+  COOPERATIVE
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 LoanStructure
+enum LoanStructure {
+  TERM_LOAN
+  OVERDRAFT
+  TRADE_FINANCE
+  INVOICE_FINANCING
+  HIRE_PURCHASE
+  LEASING
+  REVOLVING_CREDIT
+  BRIDGING_LOAN
+  PROPERTY_LOAN
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 CollateralRequirement
+enum CollateralRequirement {
+  UNSECURED
+  PROPERTY
+  FIXED_DEPOSIT
+  GOVERNMENT_GUARANTEE
+  MIXED
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 GuaranteeScheme
+enum GuaranteeScheme {
+  CGC_BIZMAJU
+  CGC_BIZWANITA
+  CGC_BIZJAMIN
+  CGC_PORTFOLIO_GUARANTEE
+  SJPP_TPKS
+  SJPP_TPUB
+  SJPP_TTSS
+  BNM_TPUB
+  BNM_TPKS
+  BNM_FSMI2
+  NONE
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 FieldConfidence
+enum FieldConfidence {
+  CONFIRMED
+  LIKELY
+  ESTIMATED
+  CONFLICT
+  MISSING
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 SourceChannel
+enum SourceChannel {
+  OFFICIAL_BANK_WEBSITE
+  OFFICIAL_CGC_SJPP_BNM
+  FINANCIAL_MEDIA
+  ADVISOR_CONSULTANT
+  APPLICANT_COMMUNITY
+  AUTHORITY_PLATFORM
+  INTERNAL_HANDBOOK
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 Case.urgency
+enum Urgency {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 DirectorProfile.role
+enum DirectorRole {
+  DIRECTOR
+  GUARANTOR
+  BOTH
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 EmployerType
+enum EmployerType {
+  GOVERNMENT
+  GLC
+  PLC
+  MNC
+  LARGE_PRIVATE
+  SME
+  SELF_EMPLOYED
+  OTHER
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 DirectorProfile.personal_credit_score
+enum PersonalCreditScore {
+  STRONG
+  ACCEPTABLE
+  MARGINAL
+  WEAK
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 CaseFinancials.ccris_status
+enum CcrisStatus {
+  CLEAN
+  MINOR_ISSUE
+  MAJOR_ISSUE
+  UNKNOWN
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 MatchScore
+enum MatchScore {
+  HIGH
+  MEDIUM
+  LOW
+  INELIGIBLE
+}
+
+// Source: Corporate-Loan_Assessment.md Appendix B User.role
+enum UserRole {
+  SUPER_ADMIN
+  SENIOR_ADVISOR
+  ADVISOR
+  VIEWER
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 FieldEvidence.language
+enum Language {
+  ZH
+  EN
+  BM
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 LoanPurpose
+enum LoanPurpose {
+  WORKING_CAPITAL
+  PROPERTY_PURCHASE
+  EQUIPMENT_MACHINERY
+  BUSINESS_EXPANSION
+  DEBT_REFINANCING
+  TRADE_FINANCING
+  PROJECT_FINANCING
+  OTHER
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 Collateral.type
+enum CollateralType {
+  RESIDENTIAL_PROPERTY
+  COMMERCIAL_PROPERTY
+  INDUSTRIAL_PROPERTY
+  LAND
+  FIXED_DEPOSIT
+  SHARES
+  OTHER
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 CompanyType
+enum CompanyType {
+  SDN_BHD
+  BHD
+  ENTERPRISE
+  PARTNERSHIP
+  LLP
+  SOLE_PROPRIETOR
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 IndustryCategory
+enum IndustryCategory {
+  MANUFACTURING
+  TRADING_RETAIL
+  FOOD_BEVERAGE
+  CONSTRUCTION
+  PROPERTY_DEVELOPER
+  IT_TECHNOLOGY
+  PROFESSIONAL_SERVICES
+  EDUCATION
+  HEALTHCARE
+  LOGISTICS_TRANSPORT
+  AGRICULTURE
+  HOSPITALITY_TOURISM
+  FINANCIAL_SERVICES
+  OTHER
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 ProductBlockA.rate_type
+enum RateType {
+  FIXED
+  FLOATING
+  BFR_BASED
+}
+
+// Source: Corporate-Loan_Assessment.md §3.1 FieldDecision.value_type
+enum ValueType {
+  POINT_VALUE
+  RANGE
+  TEXT
+  FORMULA
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BANK
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Bank {
+  id                          String          @id @default(cuid())
+  code                        String          @unique
+  name_en                     String
+  name_zh                     String
+  name_bm                     String
+  type                        InstitutionType
+  is_shariah_compliant        Boolean         @default(false)
+  official_website            String
+  sme_portal_url              String?
+  cgc_partner                 Boolean         @default(false)
+  sjpp_partner                Boolean         @default(false)
+  bnm_fund_partner            Boolean         @default(false)
+  personal_dsr_low_threshold  Float?
+  personal_dsr_high_threshold Float?
+  personal_income_cutoff      Float?
+  personal_min_ctos           Int?
+  personal_approval_rate_pct  Float?
+  products                    Product[]
+  created_at                  DateTime        @default(now())
+  updated_at                  DateTime        @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT
+// block_a_json and block_b_json are kept as raw storage for Phase 2.
+// Normalization into typed sub-models is planned for Phase 5.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Product {
+  id                     String                @id @default(cuid())
+  bank_id                String
+  bank                   Bank                  @relation(fields: [bank_id], references: [id])
+  product_code           String
+  product_name_en        String
+  product_name_zh        String
+  loan_structure         LoanStructure
+  collateral_requirement CollateralRequirement
+  guarantee_scheme       GuaranteeScheme
+  is_shariah             Boolean               @default(false)
+  is_active              Boolean               @default(true)
+  // Raw storage for ProductBlockA fields. Phase 5 will normalize to typed columns.
+  block_a_json           String?
+  // Raw storage for ProcessStep array (11 steps). Phase 5 will normalize to ProcessStep model.
+  block_b_json           String?
+  block_c_summary        String?
+  block_a_completion_pct Float                 @default(0)
+  block_b_completion_pct Float                 @default(0)
+  last_verified_date     DateTime?
+  matching_results       MatchingResult[]
+  evidences              FieldEvidence[]
+  decisions              FieldDecision[]
+  created_at             DateTime              @default(now())
+  updated_at             DateTime              @updatedAt
+
+  @@unique([bank_id, product_code])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLIENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Client {
+  id                    String           @id @default(cuid())
+  company_name          String
+  ssm_number            String           @unique
+  company_type          CompanyType
+  industry_category     IndustryCategory
+  industry_subcategory  String?
+  incorporation_date    DateTime
+  registered_address    String
+  operating_address     String?
+  bumiputera_status     Boolean          @default(false)
+  primary_contact_name  String
+  primary_contact_ic    String
+  primary_contact_phone String
+  primary_contact_email String
+  cases                 Case[]
+  created_at            DateTime         @default(now())
+  updated_at            DateTime         @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CASE
+// status: intentionally String, not enum.
+// Business workflow states may evolve; allowed values enforced at app layer
+// via the CASE_STATUS TypeScript const object in src/lib/constants.ts.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Case {
+  id                               String            @id @default(cuid())
+  client_id                        String
+  client                           Client            @relation(fields: [client_id], references: [id])
+  case_reference                   String            @unique
+  advisor_id                       String
+  advisor                          User              @relation(fields: [advisor_id], references: [id], onDelete: Restrict)
+  purpose                          LoanPurpose
+  purpose_description              String?
+  requested_amount                 Float
+  acceptable_max_monthly_repayment Float?
+  preferred_tenure_months          Int?
+  urgency                          Urgency           @default(MEDIUM)
+  status                           String            @default("INTAKE")
+  follow_up_date                   DateTime?
+  notes                            String?
+  financials                       CaseFinancials?
+  directors                        DirectorProfile[]
+  matching_results                 MatchingResult[]
+  created_at                       DateTime          @default(now())
+  updated_at                       DateTime          @updatedAt
+
+  @@index([status])
+  @@index([advisor_id])
+  @@index([follow_up_date])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CASE FINANCIALS — fully normalized, one-to-one with Case
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CaseFinancials {
+  id      String @id @default(cuid())
+  case_id String @unique
+  case    Case   @relation(fields: [case_id], references: [id], onDelete: Cascade)
+
+  // A. Revenue & Profit
+  annual_revenue_y1    Float?
+  annual_revenue_y2    Float?
+  annual_revenue_y3    Float?
+  net_profit_y1        Float?
+  net_profit_y2        Float?
+  net_profit_y3        Float?
+  ebitda_y1            Float?
+  ebitda_y2            Float?
+  has_audited_accounts Boolean @default(false)
+  has_tax_filing       Boolean @default(false)
+
+  // B. Bank statement aggregates (across all BankAccountSummary rows)
+  avg_monthly_inflow_6m             Float?
+  avg_monthly_inflow_12m            Float?
+  avg_monthly_ending_balance        Float?
+  bounce_cheque_count_12m           Int?
+  cash_inflow_pct                   Float?
+  single_customer_concentration_pct Float?
+
+  // C. Existing debt aggregates (auto-calculated from ExistingLoan rows by engine)
+  total_existing_monthly_repayment Float?
+  total_existing_outstanding       Float?
+
+  // D. Credit status
+  ctos_score   Int?
+  // ctos_grade: mapped at app layer from ctos_score (EXCELLENT/VERY_GOOD/GOOD/FAIR/POOR)
+  ctos_grade   String?
+  ccris_status CcrisStatus @default(UNKNOWN)
+  ccris_notes  String?
+
+  // F. Engine-computed fields — READ-ONLY, written only by the calculation engine
+  effective_monthly_inflow         Float?
+  calculated_dscr                  Float?
+  calculated_fcf                   Float?
+  total_debt_to_annual_revenue_pct Float?
+  debt_service_coverage            Float?
+
+  bank_accounts  BankAccountSummary[]
+  existing_loans ExistingLoan[]
+  collaterals    Collateral[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BANK ACCOUNT SUMMARY — child of CaseFinancials
+// ─────────────────────────────────────────────────────────────────────────────
+
+model BankAccountSummary {
+  id                   String         @id @default(cuid())
+  financials_id        String
+  financials           CaseFinancials @relation(fields: [financials_id], references: [id], onDelete: Cascade)
+  bank_name            String
+  account_number_last4 String
+  is_primary           Boolean        @default(false)
+  avg_monthly_inflow   Float?
+  avg_monthly_outflow  Float?
+  avg_ending_balance   Float?
+  months_of_data       Int
+  bounce_count         Int            @default(0)
+  concentration_risk   Boolean        @default(false)
+  cash_inflow_pct      Float?
+  created_at           DateTime       @default(now())
+  updated_at           DateTime       @updatedAt
+
+  @@index([financials_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXISTING LOAN — child of CaseFinancials
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ExistingLoan {
+  id                     String         @id @default(cuid())
+  financials_id          String
+  financials             CaseFinancials @relation(fields: [financials_id], references: [id], onDelete: Cascade)
+  bank_name              String
+  product_type           String
+  outstanding_balance    Float
+  monthly_repayment      Float
+  maturity_date          DateTime?
+  is_secured             Boolean        @default(false)
+  collateral_description String?
+  created_at             DateTime       @default(now())
+  updated_at             DateTime       @updatedAt
+
+  @@index([financials_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COLLATERAL — child of CaseFinancials
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Collateral {
+  id                     String         @id @default(cuid())
+  financials_id          String
+  financials             CaseFinancials @relation(fields: [financials_id], references: [id], onDelete: Cascade)
+  type                   CollateralType
+  description            String
+  estimated_market_value Float
+  existing_encumbrance   Float
+  // net_equity: calculated at app layer = estimated_market_value - existing_encumbrance
+  net_equity             Float
+  valuation_date         DateTime?
+  // e.g. "Freehold" | "Leasehold" | "Strata"
+  title_type             String?
+  created_at             DateTime       @default(now())
+  updated_at             DateTime       @updatedAt
+
+  @@index([financials_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DIRECTOR PROFILE
+// income_items_json and personal_loans_json kept as JSON for Phase 2–3.
+// Phase 4 will replace with DirectorIncomeItem and PersonalLoanItem models.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DirectorProfile {
+  id                                String               @id @default(cuid())
+  case_id                           String
+  case                              Case                 @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  full_name                         String
+  ic_number                         String
+  role                              DirectorRole
+  employer_type                     EmployerType
+  employer_name                     String
+  epf_continuous_months             Int?
+  epf_last_contribution_month       String?
+  epf_account2_balance              Float?
+  ctos_score                        Int?
+  ccris_status                      CcrisStatus          @default(UNKNOWN)
+  ccris_notes                       String?
+  // Phase 4: replace with DirectorIncomeItem model
+  income_items_json                 String?
+  // Phase 4: replace with PersonalLoanItem model
+  personal_loans_json               String?
+  // Engine-computed (READ-ONLY)
+  total_recognized_monthly_income   Float?
+  total_personal_monthly_commitment Float?
+  calculated_personal_dsr           Float?
+  personal_credit_score             PersonalCreditScore?
+  created_at                        DateTime             @default(now())
+  updated_at                        DateTime             @updatedAt
+
+  @@unique([case_id, ic_number])
+  @@index([case_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MATCHING RESULT
+// Flag/breakdown JSON fields are display-only payloads, not query inputs.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MatchingResult {
+  id                              String     @id @default(cuid())
+  case_id                         String
+  case                            Case       @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  product_id                      String
+  product                         Product    @relation(fields: [product_id], references: [id])
+  overall_score                   MatchScore
+  estimated_amount_min            Float?
+  estimated_amount_max            Float?
+  estimated_monthly_repayment_min Float?
+  estimated_monthly_repayment_max Float?
+  estimated_approval_probability  Float?
+  // Display-only. Not used as query/filter input.
+  eligibility_flags_json          String?
+  risk_flags_json                 String?
+  requirement_gaps_json           String?
+  amount_breakdown_json           String?
+  is_selected                     Boolean    @default(false)
+  selected_amount                 Float?
+  selected_tenure_months          Int?
+  advisor_override_notes          String?
+  calculated_at                   DateTime   @default(now())
+
+  @@unique([case_id, product_id])
+  @@index([overall_score])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD EVIDENCE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FieldEvidence {
+  id               String                  @id @default(cuid())
+  product_id       String
+  product          Product                 @relation(fields: [product_id], references: [id])
+  field_name       String
+  step_type        String?
+  raw_text         String
+  raw_value        String?
+  normalized_value String?
+  source_url       String?
+  source_channel   SourceChannel
+  source_name      String
+  source_date      DateTime?
+  language         Language                @default(ZH)
+  is_verified      Boolean                 @default(false)
+  verified_by      String?
+  verified_at      DateTime?
+  decision_links   FieldDecisionEvidence[]
+  created_at       DateTime                @default(now())
+
+  @@index([product_id, field_name])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD DECISION
+//
+// Phase 2 NOTE: This table is READ-ONLY in Phase 2.
+// Phase 2 only displays existing FieldDecision records in the Rules Decision tab.
+// The cross-validation engine that WRITES new FieldDecision records will be
+// implemented in Phase 5 together with FieldDecisionEvidence population.
+//
+// supporting_evidence_ids: DEPRECATED read-compatibility field.
+// New code MUST NOT write to this field.
+// Phase 5 will migrate existing rows to FieldDecisionEvidence and drop this field.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FieldDecision {
+  id               String                  @id @default(cuid())
+  product_id       String
+  product          Product                 @relation(fields: [product_id], references: [id])
+  field_name       String
+  step_type        String?
+  final_value      String?
+  value_type       ValueType
+  confidence       FieldConfidence
+  decision_basis   String
+  // DEPRECATED — read-only compatibility field. Do NOT write to this in new code.
+  // Phase 5 migration will populate evidence_links and remove this field.
+  supporting_evidence_ids String    @default("[]")
+  human_overridden        Boolean   @default(false)
+  override_by             String?
+  override_reason         String?
+  override_at             DateTime?
+  combined_sources        String    @default("")
+  evidence_links          FieldDecisionEvidence[]
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  @@unique([product_id, field_name, step_type])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIELD DECISION EVIDENCE — join table
+//
+// Structure created in Phase 2. Data population begins in Phase 5.
+// Phase 2 code does NOT write to this table.
+// Phase 5 cross-validation engine will populate this table when writing
+// new FieldDecision records.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FieldDecisionEvidence {
+  decision_id String
+  evidence_id String
+  decision    FieldDecision @relation(fields: [decision_id], references: [id], onDelete: Cascade)
+  evidence    FieldEvidence @relation(fields: [evidence_id], references: [id], onDelete: Cascade)
+
+  @@id([decision_id, evidence_id])
+  @@index([evidence_id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  password   String
+  role       UserRole @default(ADVISOR)
+  cases      Case[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
