@@ -1,21 +1,14 @@
 // =============================================================================
 // BCIS Matching Engine — Public API
-// Phase 2A: function signatures only.
-//
-// IMPLEMENTATION STATUS: all bodies throw 'Not implemented'.
-// Phase 2B will provide the full implementation.
-//
-// Domain models imported below are defined in their respective modules per
-// Corporate-Loan_Assessment.md; they are NOT redefined here.
+// Phase 2B: delegates to impl.ts.
+// Signatures and doc-comments are unchanged from Phase 2A.
 // =============================================================================
 
-// ── Domain model imports (defined elsewhere in the BCIS codebase) ─────────
-import type { CaseWithFinancials }  from '@/types/case.types'
-import type { ProductPolicyConfig } from '@/types/policy.types'
-import type { BankPolicyConfig }    from '@/types/policy.types'
+import type { CaseWithFinancials }   from '@/types/case.types'
+import type { ProductPolicyConfig }  from '@/types/policy.types'
+import type { BankPolicyConfig }     from '@/types/policy.types'
 import type { GlobalEngineDefaults } from '@/types/policy.types'
 
-// ── Matching engine type imports ──────────────────────────────────────────
 import type {
   EligibilityFlag,
   RiskFlag,
@@ -24,91 +17,66 @@ import type {
   ScoringThresholds,
 } from './types'
 
+import {
+  computeEligibilityFlagsImpl,
+  computeRiskFlagsImpl,
+  computeMatchScoreImpl,
+  computeAmountRangeImpl,
+} from './impl'
+
 // -----------------------------------------------------------------------------
 // computeEligibilityFlags
-//
-// Evaluates all eligibility rules for a (case, product, bank, global) tuple
-// and returns an EligibilityFlag for every rule that was checked — both passed
-// and failed — so callers have a complete audit trail.
-//
-// Implementation: Phase 2B.
 // -----------------------------------------------------------------------------
 
 export function computeEligibilityFlags(
-  _cas:            CaseWithFinancials,
-  _productConfig:  ProductPolicyConfig,
-  _bankConfig:     BankPolicyConfig,
-  _globalDefaults: GlobalEngineDefaults,
+  cas:            CaseWithFinancials,
+  productConfig:  ProductPolicyConfig,
+  bankConfig:     BankPolicyConfig,
+  globalDefaults: GlobalEngineDefaults,
 ): EligibilityFlag[] {
-  throw new Error('Not implemented: Phase 2B will provide implementation')
+  return computeEligibilityFlagsImpl(cas, productConfig, bankConfig, globalDefaults)
 }
 
 // -----------------------------------------------------------------------------
 // computeRiskFlags
-//
-// Evaluates all risk-signal rules for a (case, product, bank, global) tuple
-// using the pre-discounted effectiveInflow and a pre-computed
-// estimatedMaxAmount (from computeAmountRange) so that loan-size preference
-// checks can reference a concrete figure.
-//
-// Implementation: Phase 2B.
 // -----------------------------------------------------------------------------
 
 export function computeRiskFlags(
-  _cas:                CaseWithFinancials,
-  _productConfig:      ProductPolicyConfig,
-  _bankConfig:         BankPolicyConfig,
-  _globalDefaults:     GlobalEngineDefaults,
-  _effectiveInflow:    number,
-  _estimatedMaxAmount: number | null,
+  cas:                CaseWithFinancials,
+  productConfig:      ProductPolicyConfig,
+  bankConfig:         BankPolicyConfig,
+  globalDefaults:     GlobalEngineDefaults,
+  effectiveInflow:    number,
+  estimatedMaxAmount: number | null,
 ): RiskFlag[] {
-  throw new Error('Not implemented: Phase 2B will provide implementation')
+  return computeRiskFlagsImpl(
+    cas, productConfig, bankConfig, globalDefaults,
+    effectiveInflow, estimatedMaxAmount,
+  )
 }
 
 // -----------------------------------------------------------------------------
 // computeMatchScore
-//
-// Derives the discrete MatchScore from the outputs of computeEligibilityFlags
-// and computeRiskFlags, using the band-boundary counts in ScoringThresholds.
-//
-// Rule skeleton (qualitative, no numeric literals):
-//   any HARD_BLOCK EligibilityFlag that is not passed → INELIGIBLE
-//   HIGH-severity RiskFlag count ≥ thresholds.highRiskFlagCountForLow → LOW
-//   HIGH-severity RiskFlag count ≥ thresholds.highRiskFlagCountForMedium → MEDIUM
-//   MEDIUM-severity RiskFlag count ≥ thresholds.medRiskFlagCountForMedium → MEDIUM
-//   otherwise → HIGH
-//
-// Implementation: Phase 2B.
 // -----------------------------------------------------------------------------
 
 export function computeMatchScore(
-  _eligibilityFlags: EligibilityFlag[],
-  _riskFlags:        RiskFlag[],
-  _thresholds:       ScoringThresholds,
+  eligibilityFlags: EligibilityFlag[],
+  riskFlags:        RiskFlag[],
+  thresholds:       ScoringThresholds,
 ): MatchScore {
-  throw new Error('Not implemented: Phase 2B will provide implementation')
+  return computeMatchScoreImpl(eligibilityFlags, riskFlags, thresholds)
 }
 
 // -----------------------------------------------------------------------------
 // computeAmountRange
-//
-// Runs all three amount-sizing methods (TURNOVER, REVENUE, DSCR) using the
-// resolved config fields at product > bank > global precedence, then selects
-// the binding constraint as the smallest valid ceiling across all methods and
-// the product cap.
-//
-// Accepts effectiveInflow pre-computed by applyStatementDiscounts() so that
-// statement-quality discounting logic is not duplicated here.
-//
-// Implementation: Phase 2B.
 // -----------------------------------------------------------------------------
 
 export function computeAmountRange(
-  _cas:             CaseWithFinancials,
-  _productConfig:   ProductPolicyConfig,
-  _bankConfig:      BankPolicyConfig,
-  _globalDefaults:  GlobalEngineDefaults,
-  _effectiveInflow: number,
+  cas:             CaseWithFinancials,
+  productConfig:   ProductPolicyConfig,
+  bankConfig:      BankPolicyConfig,
+  globalDefaults:  GlobalEngineDefaults,
+  effectiveInflow: number,
 ): AmountCalculationBreakdown {
-  throw new Error('Not implemented: Phase 2B will provide implementation')
+  return computeAmountRangeImpl(cas, productConfig, bankConfig, globalDefaults, effectiveInflow)
 }
