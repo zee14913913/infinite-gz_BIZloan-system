@@ -8,14 +8,13 @@ import { PrismaClient } from '@/generated/prisma/client'
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 function createAdapter() {
-  if (process.env.NODE_ENV === 'production') {
-    return new PrismaPg({
-      connectionString: process.env.DATABASE_URL!,
-    })
+  const url = process.env.DATABASE_URL ?? 'file:./prisma/dev.db'
+  // Derive adapter from URL scheme — not NODE_ENV.
+  // SQLite: file:./... | PostgreSQL: postgresql://... or postgres://...
+  if (url.startsWith('postgresql://') || url.startsWith('postgres://')) {
+    return new PrismaPg({ connectionString: url })
   }
-  return new PrismaBetterSqlite3({
-    url: process.env.DATABASE_URL ?? 'file:./prisma/dev.db',
-  })
+  return new PrismaBetterSqlite3({ url })
 }
 
 export const prisma: PrismaClient =

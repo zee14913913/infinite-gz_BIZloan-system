@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import { PrismaClient, InstitutionType } from '../src/generated/prisma/client'
+import { PrismaClient, InstitutionType, UserRole } from '../src/generated/prisma/client'
 import bcrypt from 'bcryptjs'
 
 const adapter = new PrismaBetterSqlite3({
@@ -63,8 +63,8 @@ async function seedUsers() {
     const hash = await bcrypt.hash(u.password, 12)
     await prisma.user.upsert({
       where:  { email: u.email },
-      update: { name: u.name, role: u.role as any, password: hash },
-      create: { email: u.email, name: u.name, role: u.role as any, password: hash },
+      update: { name: u.name, role: u.role as UserRole, password: hash },
+      create: { email: u.email, name: u.name, role: u.role as UserRole, password: hash },
     })
     console.log(`  ✓ ${u.email} [${u.role}]`)
   }
