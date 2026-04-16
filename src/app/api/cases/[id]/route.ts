@@ -37,6 +37,9 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     urgency, status, follow_up_date, notes,
   } = body
 
+  const exists = await prisma.case.findUnique({ where: { id }, select: { id: true } })
+  if (!exists) return ApiResponse.notFound()
+
   const updated = await prisma.case.update({
     where: { id },
     data: {
@@ -64,6 +67,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const { id } = await params
+  const exists = await prisma.case.findUnique({ where: { id }, select: { id: true } })
+  if (!exists) return ApiResponse.notFound()
   await prisma.case.delete({ where: { id } })
   return ApiResponse.ok({ id })
 }

@@ -46,6 +46,7 @@ function ReadOnlyField({ label, value, positive }: { label: string; value: strin
 export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
   const fin = financials
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [addingAccount, setAddingAccount] = useState(false)
   const [addingLoan, setAddingLoan] = useState(false)
   const [addingCollateral, setAddingCollateral] = useState(false)
@@ -73,14 +74,21 @@ export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
 
   async function saveSection(data: Record<string, unknown>) {
     setSaving(true)
-    const res = await fetch(`/api/cases/${caseId}/financials`, {
-      method:  'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(data),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (json.data) onUpdate(json.data)
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/cases/${caseId}/financials`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(data),
+      })
+      const json = await res.json()
+      if (!res.ok) { setSaveError(json.error ?? '保存失败，请重试'); return }
+      if (json.data) onUpdate(json.data)
+    } catch {
+      setSaveError('网络错误，请重试')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // ── Add bank account ──────────────────────────────────────────────────────
@@ -89,16 +97,23 @@ export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
 
   async function saveAccount() {
     setSaving(true)
-    const res = await fetch(`/api/cases/${caseId}/bank-accounts`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newAcct, avg_monthly_inflow: Number(newAcct.avg_monthly_inflow) || undefined,
-        avg_ending_balance: Number(newAcct.avg_ending_balance) || undefined,
-        months_of_data: Number(newAcct.months_of_data), bounce_count: Number(newAcct.bounce_count),
-        cash_inflow_pct: newAcct.cash_inflow_pct ? Number(newAcct.cash_inflow_pct) / 100 : undefined }),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (json.data?.financials) { onUpdate(json.data.financials); setAddingAccount(false) }
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/cases/${caseId}/bank-accounts`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newAcct, avg_monthly_inflow: Number(newAcct.avg_monthly_inflow) || undefined,
+          avg_ending_balance: Number(newAcct.avg_ending_balance) || undefined,
+          months_of_data: Number(newAcct.months_of_data), bounce_count: Number(newAcct.bounce_count),
+          cash_inflow_pct: newAcct.cash_inflow_pct ? Number(newAcct.cash_inflow_pct) / 100 : undefined }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setSaveError(json.error ?? '添加账户失败，请重试'); return }
+      if (json.data?.financials) { onUpdate(json.data.financials); setAddingAccount(false) }
+    } catch {
+      setSaveError('网络错误，请重试')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // ── Add existing loan ─────────────────────────────────────────────────────
@@ -107,14 +122,21 @@ export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
 
   async function saveLoan() {
     setSaving(true)
-    const res = await fetch(`/api/cases/${caseId}/existing-loans`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newLoan, outstanding_balance: Number(newLoan.outstanding_balance),
-        monthly_repayment: Number(newLoan.monthly_repayment) }),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (json.data?.financials) { onUpdate(json.data.financials); setAddingLoan(false) }
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/cases/${caseId}/existing-loans`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newLoan, outstanding_balance: Number(newLoan.outstanding_balance),
+          monthly_repayment: Number(newLoan.monthly_repayment) }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setSaveError(json.error ?? '添加贷款失败，请重试'); return }
+      if (json.data?.financials) { onUpdate(json.data.financials); setAddingLoan(false) }
+    } catch {
+      setSaveError('网络错误，请重试')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // ── Add collateral ────────────────────────────────────────────────────────
@@ -128,15 +150,22 @@ export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
 
   async function saveCollateral() {
     setSaving(true)
-    const res = await fetch(`/api/cases/${caseId}/collaterals`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newColl,
-        estimated_market_value: Number(newColl.estimated_market_value),
-        existing_encumbrance: Number(newColl.existing_encumbrance) || 0 }),
-    })
-    const json = await res.json()
-    setSaving(false)
-    if (json.data?.financials) { onUpdate(json.data.financials); setAddingCollateral(false) }
+    setSaveError(null)
+    try {
+      const res = await fetch(`/api/cases/${caseId}/collaterals`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newColl,
+          estimated_market_value: Number(newColl.estimated_market_value),
+          existing_encumbrance: Number(newColl.existing_encumbrance) || 0 }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setSaveError(json.error ?? '添加抵押物失败，请重试'); return }
+      if (json.data?.financials) { onUpdate(json.data.financials); setAddingCollateral(false) }
+    } catch {
+      setSaveError('网络错误，请重试')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function deleteItem(endpoint: string) {
@@ -159,6 +188,16 @@ export default function FinancialsTab({ caseId, financials, onUpdate }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {saveError && (
+        <div style={{ padding: '10px 16px', borderRadius: 'var(--radius-md)',
+          background: 'var(--color-status-alert-bg)', border: '1px solid var(--color-status-alert)',
+          color: 'var(--color-status-alert)', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{saveError}</span>
+          <button onClick={() => setSaveError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700, fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       {/* ── A. Revenue & Profit ──────────────────────────────────────────── */}
       <div className="card" style={{ padding: 22 }}>

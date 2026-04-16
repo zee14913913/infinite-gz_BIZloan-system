@@ -21,6 +21,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     return ApiResponse.badRequest('bank_name, monthly_repayment, and outstanding_balance are required')
   }
 
+  const caseExists = await prisma.case.findUnique({ where: { id: caseId }, select: { id: true } })
+  if (!caseExists) return ApiResponse.notFound('Case not found')
+
   const fin = await ensureFinancials(caseId)
 
   const loan = await prisma.existingLoan.create({
@@ -45,6 +48,13 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { searchParams } = new URL(req.url)
   const loanId = searchParams.get('loanId')
   if (!loanId) return ApiResponse.badRequest('loanId query param required')
+
+  const loan = await prisma.existingLoan.findUnique({
+    where: { id: loanId },
+    include: { financials: { select: { case_id: true } } },
+  })
+  if (!loan) return ApiResponse.notFound('Loan not found')
+  if (loan.financials.case_id !== caseId) return ApiResponse.forbidden('Loan does not belong to this case')
 
   await prisma.existingLoan.delete({ where: { id: loanId } })
   const updated = await recalculateFinancials(caseId)

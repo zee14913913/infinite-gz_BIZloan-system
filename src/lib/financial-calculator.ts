@@ -52,14 +52,16 @@ function applyStatementDiscounts(
 
 // ---------------------------------------------------------------------------
 // mapCtosGrade
+// Thresholds sourced from GlobalEngineDefaults.ctosGradeThresholds.
 // ---------------------------------------------------------------------------
 
 export function mapCtosGrade(score: number | null): string | null {
   if (score === null) return null
-  if (score >= 750) return 'EXCELLENT'
-  if (score >= 700) return 'VERY_GOOD'
-  if (score >= 650) return 'GOOD'
-  if (score >= 600) return 'FAIR'
+  const t = GLOBAL_ENGINE_DEFAULTS_BASELINE.ctosGradeThresholds
+  if (score >= t.excellent) return 'EXCELLENT'
+  if (score >= t.veryGood)  return 'VERY_GOOD'
+  if (score >= t.good)      return 'GOOD'
+  if (score >= t.fair)      return 'FAIR'
   return 'POOR'
 }
 

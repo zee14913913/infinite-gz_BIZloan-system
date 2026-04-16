@@ -25,6 +25,9 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     primary_contact_phone, primary_contact_email,
   } = body
 
+  const exists = await prisma.client.findUnique({ where: { id }, select: { id: true } })
+  if (!exists) return ApiResponse.notFound()
+
   const client = await prisma.client.update({
     where: { id },
     data: {
@@ -48,6 +51,8 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   const { id } = await params
+  const exists = await prisma.client.findUnique({ where: { id }, select: { id: true } })
+  if (!exists) return ApiResponse.notFound()
   await prisma.client.delete({ where: { id } })
   return ApiResponse.ok({ id })
 }

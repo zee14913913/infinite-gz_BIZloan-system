@@ -105,6 +105,14 @@ export const GLOBAL_ENGINE_DEFAULTS_BASELINE: GlobalEngineDefaults = {
     medRiskFlagCountForMedium:  3, // [PLACEHOLDER]
   },
 
+  // -- CTOS grade thresholds [PLACEHOLDER] ----------------------------------
+  ctosGradeThresholds: {
+    excellent: 750,  // [PLACEHOLDER]
+    veryGood:  700,  // [PLACEHOLDER]
+    good:      650,  // [PLACEHOLDER]
+    fair:      600,  // [PLACEHOLDER]
+  },
+
   // -- Risk flag default severities [PLACEHOLDER] ---------------------------
   defaultCashInflowRiskSeverity:             'MEDIUM', // [PLACEHOLDER]
   defaultCustomerConcentrationRiskSeverity:  'MEDIUM', // [PLACEHOLDER]

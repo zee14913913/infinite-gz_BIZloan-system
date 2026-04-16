@@ -22,6 +22,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     return ApiResponse.badRequest('type and estimated_market_value are required')
   }
 
+  const caseExists = await prisma.case.findUnique({ where: { id: caseId }, select: { id: true } })
+  if (!caseExists) return ApiResponse.notFound('Case not found')
+
   const fin = await ensureFinancials(caseId)
 
   const marketValue   = Number(body.estimated_market_value)
@@ -50,6 +53,13 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { searchParams } = new URL(req.url)
   const collateralId = searchParams.get('collateralId')
   if (!collateralId) return ApiResponse.badRequest('collateralId query param required')
+
+  const collateral = await prisma.collateral.findUnique({
+    where: { id: collateralId },
+    include: { financials: { select: { case_id: true } } },
+  })
+  if (!collateral) return ApiResponse.notFound('Collateral not found')
+  if (collateral.financials.case_id !== caseId) return ApiResponse.forbidden('Collateral does not belong to this case')
 
   await prisma.collateral.delete({ where: { id: collateralId } })
   const updated = await recalculateFinancials(caseId)

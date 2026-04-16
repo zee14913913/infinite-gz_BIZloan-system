@@ -229,8 +229,22 @@ export interface GlobalEngineDefaults {
    */
   defaultIndustryRiskMapping: Record<IndustryCategory, IndustryRiskLevel>
 
-  // -- Risk flag default severities ------------------------------------------
+  // -- CTOS grade thresholds -------------------------------------------------
 
+  /**
+   * Score boundaries used to map a numeric CTOS score to a display grade.
+   * Populated from INFINITE GZ 2026 handbook. Must be replaced in Phase 3.
+   * All boundaries are inclusive lower bounds (score >= boundary → grade).
+   */
+  ctosGradeThresholds: {
+    excellent: number  // score >= this → 'EXCELLENT'
+    veryGood:  number  // score >= this → 'VERY_GOOD'
+    good:      number  // score >= this → 'GOOD'
+    fair:      number  // score >= this → 'FAIR'
+    // below fair → 'POOR'
+  }
+
+  // -- Risk flag default severities ------------------------------------------
   /**
    * Default severity for HIGH_CASH_INFLOW_PCT risk flag.
    * Overridable per bank via BankPolicyConfig.cashInflowRiskSeverityOverride.
