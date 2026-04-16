@@ -124,6 +124,29 @@ export interface ResolvedConfig {
 
   // -- Bank preferences (for RiskFlags only, not EligibilityFlags) ----------
   preferredBusinessAgeYearsMin: number | null
+
+  // -- Profitability strictness (Fix 2) -------------------------------------
+  /** Controls severity of BELOW_MIN_PROFITABLE_YEARS. Independent of ccrisStrictnessLevel. */
+  profitabilityStrictnessLevel: BankPolicyConfig['profitabilityStrictnessLevel']
+
+  // -- Risk flag severities (Fix 4) ----------------------------------------
+  cashInflowRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+  customerConcentrationRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+  leverageHighRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+
+  // -- Source attribution metadata (Fix 3) ----------------------------------
+  // One field per threshold that impl.ts uses for EligibilityFlag/RiskFlag.sourceConfig.
+  // Computed once here so impl.ts never reads raw bankConfig/globalOverrides directly.
+  sourceConfigForMinAnnualRevenue:     'PRODUCT' | 'BANK' | 'GLOBAL'
+  sourceConfigForMinCompanyAge:        'PRODUCT' | 'BANK' | 'GLOBAL'
+  sourceConfigForMinProfitableYears:   'BANK' | 'GLOBAL'
+  sourceConfigForMinCtosScore:         'BANK' | 'GLOBAL'
+  sourceConfigForCtosCleanliness:      'BANK' | 'GLOBAL'
+  sourceConfigForDscrPreferred:        'PRODUCT' | 'BANK' | 'GLOBAL'
+  sourceConfigForBounceThreshold:      'BANK' | 'GLOBAL'
+  sourceConfigForCashInflowPct:        'BANK' | 'GLOBAL'
+  sourceConfigForConcentrationPct:     'BANK' | 'GLOBAL'
+  sourceConfigForLeverageRatio:        'BANK' | 'GLOBAL'
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -293,5 +316,49 @@ export function resolveConfig(
 
     // ── Bank preferences ──────────────────────────────────────────────────────
     preferredBusinessAgeYearsMin: bankConfig.preferredBusinessAgeYearsMin,
+
+    // ── Profitability strictness (Fix 2) ──────────────────────────────────────
+    profitabilityStrictnessLevel: bankConfig.profitabilityStrictnessLevel,
+
+    // ── Risk flag severities (Fix 4) ──────────────────────────────────────────
+    cashInflowRiskSeverity:
+      bankConfig.cashInflowRiskSeverityOverride ??
+      globalDefaults.defaultCashInflowRiskSeverity,
+    customerConcentrationRiskSeverity:
+      bankConfig.customerConcentrationRiskSeverityOverride ??
+      globalDefaults.defaultCustomerConcentrationRiskSeverity,
+    leverageHighRiskSeverity:
+      bankConfig.leverageHighRiskSeverityOverride ??
+      globalDefaults.defaultLeverageHighRiskSeverity,
+
+    // ── Source attribution metadata (Fix 3) ───────────────────────────────────
+    sourceConfigForMinAnnualRevenue:
+      productConfig.minAnnualRevenue !== null   ? 'PRODUCT'
+      : bo.defaultMinAnnualRevenue   !== undefined ? 'BANK'
+      : 'GLOBAL',
+    sourceConfigForMinCompanyAge:
+      productConfig.minCompanyAgeMonths !== null     ? 'PRODUCT'
+      : bo.defaultMinYearsInBusiness    !== undefined ? 'BANK'
+      : 'GLOBAL',
+    sourceConfigForMinProfitableYears:
+      bo.defaultMinProfitableYears !== undefined ? 'BANK' : 'GLOBAL',
+    sourceConfigForMinCtosScore:
+      (bankConfig.minCtosScore !== null || bo.defaultMinCtosScore !== undefined)
+        ? 'BANK' : 'GLOBAL',
+    sourceConfigForCtosCleanliness:
+      (bankConfig.minCtosScore !== null || bo.defaultCtosCleanThreshold !== undefined)
+        ? 'BANK' : 'GLOBAL',
+    sourceConfigForDscrPreferred:
+      productConfig.dscrPreferred !== null ? 'PRODUCT'
+      : bo.defaultDscrPreferred   !== undefined ? 'BANK'
+      : 'GLOBAL',
+    sourceConfigForBounceThreshold:
+      bo.defaultBounceChequeRiskFlagThreshold !== undefined ? 'BANK' : 'GLOBAL',
+    sourceConfigForCashInflowPct:
+      bo.defaultMaxCashInflowPct !== undefined ? 'BANK' : 'GLOBAL',
+    sourceConfigForConcentrationPct:
+      bo.defaultMaxSingleCustomerConcentrationPct !== undefined ? 'BANK' : 'GLOBAL',
+    sourceConfigForLeverageRatio:
+      bo.defaultMaxTotalDebtToAnnualRevenuePct !== undefined ? 'BANK' : 'GLOBAL',
   }
 }

@@ -229,6 +229,26 @@ export interface GlobalEngineDefaults {
    */
   defaultIndustryRiskMapping: Record<IndustryCategory, IndustryRiskLevel>
 
+  // -- Risk flag default severities ------------------------------------------
+
+  /**
+   * Default severity for HIGH_CASH_INFLOW_PCT risk flag.
+   * Overridable per bank via BankPolicyConfig.cashInflowRiskSeverityOverride.
+   */
+  defaultCashInflowRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+
+  /**
+   * Default severity for HIGH_CUSTOMER_CONCENTRATION risk flag.
+   * Overridable per bank via BankPolicyConfig.customerConcentrationRiskSeverityOverride.
+   */
+  defaultCustomerConcentrationRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+
+  /**
+   * Default severity for LEVERAGE_HIGH risk flag.
+   * Overridable per bank via BankPolicyConfig.leverageHighRiskSeverityOverride.
+   */
+  defaultLeverageHighRiskSeverity: 'HIGH' | 'MEDIUM' | 'LOW'
+
   // -- Amount sizing fallbacks ------------------------------------------------
 
   /** Fallback lower-bound turnover multiplier for Method A. */
@@ -385,6 +405,39 @@ export interface BankPolicyConfig {
    * Source: Bank.personalApprovalRatePct (seed data).
    */
   historicalApprovalRatePct: number | null
+
+  // -- Profitability strictness -----------------------------------------------
+
+  /**
+   * Controls the severity of BELOW_MIN_PROFITABLE_YEARS.
+   * STRICT:   years-in-profit violation → HARD_BLOCK.
+   * MODERATE: violation → SOFT_BLOCK.
+   * LENIENT:  violation → SOFT_BLOCK (same as MODERATE; no special relaxation).
+   *
+   * Intentionally separate from ccrisStrictnessLevel: a bank may be strict on
+   * CCRIS history but forgiving on profitability track record, or vice-versa.
+   */
+  profitabilityStrictnessLevel: 'STRICT' | 'MODERATE' | 'LENIENT'
+
+  // -- Risk flag severity overrides -------------------------------------------
+
+  /**
+   * Severity for HIGH_CASH_INFLOW_PCT risk flag.
+   * Defaults to GlobalEngineDefaults.defaultCashInflowRiskSeverity.
+   */
+  cashInflowRiskSeverityOverride?: 'HIGH' | 'MEDIUM' | 'LOW'
+
+  /**
+   * Severity for HIGH_CUSTOMER_CONCENTRATION risk flag.
+   * Defaults to GlobalEngineDefaults.defaultCustomerConcentrationRiskSeverity.
+   */
+  customerConcentrationRiskSeverityOverride?: 'HIGH' | 'MEDIUM' | 'LOW'
+
+  /**
+   * Severity for LEVERAGE_HIGH risk flag.
+   * Defaults to GlobalEngineDefaults.defaultLeverageHighRiskSeverity.
+   */
+  leverageHighRiskSeverityOverride?: 'HIGH' | 'MEDIUM' | 'LOW'
 
   // -- Shariah compliance -----------------------------------------------------
 

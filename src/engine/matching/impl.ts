@@ -76,7 +76,6 @@ export function computeEligibilityFlagsImpl(
   const fin = cas.financials
   const flags: EligibilityFlag[] = []
   const now = new Date()
-  const bo = bankConfig.globalOverrides
 
   // ── 1. INDUSTRY_EXCLUDED ─────────────────────────────────────────────────
   {
@@ -100,10 +99,7 @@ export function computeEligibilityFlagsImpl(
   {
     if (cfg.minAnnualRevenue !== null) {
       const revenue = fin.annualRevenueY1
-      const source: EligibilityFlag['sourceConfig'] =
-        productConfig.minAnnualRevenue !== null ? 'PRODUCT'
-        : bo.defaultMinAnnualRevenue   !== undefined ? 'BANK'
-        : 'GLOBAL'
+      const source: EligibilityFlag['sourceConfig'] = cfg.sourceConfigForMinAnnualRevenue
 
       if (revenue === null) {
         // Data missing — advisory warning; cannot block without data
@@ -136,10 +132,7 @@ export function computeEligibilityFlagsImpl(
   {
     if (cfg.minCompanyAgeMonths !== null) {
       const ageMonths = monthsBetween(cas.client.incorporationDate, now)
-      const source: EligibilityFlag['sourceConfig'] =
-        productConfig.minCompanyAgeMonths !== null ? 'PRODUCT'
-        : bo.defaultMinYearsInBusiness    !== undefined ? 'BANK'
-        : 'GLOBAL'
+      const source: EligibilityFlag['sourceConfig'] = cfg.sourceConfigForMinCompanyAge
 
       if (ageMonths < cfg.minCompanyAgeMonths) {
         flags.push(mkFlag(
@@ -163,11 +156,10 @@ export function computeEligibilityFlagsImpl(
         fin.netProfitY1, fin.netProfitY2, fin.netProfitY3,
       )
       if (profitableCount < cfg.minProfitableYears) {
-        // Severity: STRICT bank treats this as a hard block; otherwise soft
+        // Severity: STRICT profitability config → HARD_BLOCK; otherwise SOFT_BLOCK
         const severity: EligibilityFlag['severity'] =
-          cfg.ccrisStrictnessLevel === 'STRICT' ? 'HARD_BLOCK' : 'SOFT_BLOCK'
-        const source: EligibilityFlag['sourceConfig'] =
-          bo.defaultMinProfitableYears !== undefined ? 'BANK' : 'GLOBAL'
+          cfg.profitabilityStrictnessLevel === 'STRICT' ? 'HARD_BLOCK' : 'SOFT_BLOCK'
+        const source: EligibilityFlag['sourceConfig'] = cfg.sourceConfigForMinProfitableYears
         flags.push(mkFlag(
           EligibilityFlagType.BELOW_MIN_PROFITABLE_YEARS,
           severity,
@@ -223,8 +215,7 @@ export function computeEligibilityFlagsImpl(
         'financials.ctosScore',
         null,
         `>= ${cfg.minCtosScore}`,
-        bankConfig.minCtosScore !== null ? 'BANK' : 'GLOBAL',
-        'CTOS score not provided; manual credit bureau check required',
+        cfg.sourceConfigForMinCtosScore,
       ))
     } else if (fin.ctosScore < cfg.minCtosScore) {
       // Escalate to HARD_BLOCK if score is in the soft range and bank opts in
@@ -238,8 +229,7 @@ export function computeEligibilityFlagsImpl(
         'financials.ctosScore',
         String(fin.ctosScore),
         `>= ${cfg.minCtosScore}`,
-        bankConfig.minCtosScore !== null
-          || bo.defaultMinCtosScore !== undefined ? 'BANK' : 'GLOBAL',
+        cfg.sourceConfigForMinCtosScore,
         null,
       ))
     }
@@ -377,7 +367,6 @@ export function computeRiskFlagsImpl(
   const flags: RiskFlag[] = []
   const now = new Date()
   const ageMonths = monthsBetween(cas.client.incorporationDate, now)
-  const bo = bankConfig.globalOverrides
 
   // ── 1. DSCR_WEAK ─────────────────────────────────────────────────────────
   // Raised when DSCR is above the product's hard floor (else eligibility handles it)
@@ -397,8 +386,7 @@ export function computeRiskFlagsImpl(
           `DSCR ${fin.calculatedDscr.toFixed(2)} is below the preferred threshold of ${cfg.dscrPreferred}`,
           '建议降低申请额度、延长还款年限或先偿还部分现有贷款',
           productConfig.dscrPreferred !== null ? 'PRODUCT'
-          : bo.defaultDscrPreferred   !== undefined ? 'BANK'
-          : 'GLOBAL',
+          : cfg.sourceConfigForDscrPreferred,
         ))
       }
     }
@@ -418,7 +406,7 @@ export function computeRiskFlagsImpl(
         `过去12个月有 ${bounces} 次退票，超出风险阈值`,
         `${bounces} bounced cheques in the last 12 months exceeds the risk threshold`,
         '建议提供退票原因说明，并展示近3个月流水已明显改善',
-        bo.defaultBounceChequeRiskFlagThreshold !== undefined ? 'BANK' : 'GLOBAL',
+        cfg.sourceConfigForBounceThreshold,
       ))
     }
   }
@@ -428,11 +416,11 @@ export function computeRiskFlagsImpl(
     if (fin.cashInflowPct !== null && fin.cashInflowPct > cfg.maxCashInflowPct) {
       flags.push(mkRisk(
         RiskFlagType.HIGH_CASH_INFLOW_PCT,
-        'MEDIUM',
+        cfg.cashInflowRiskSeverity,
         `现金进账占比 ${(fin.cashInflowPct * 100).toFixed(1)}% 偏高，核实存在困难`,
         `Cash inflow proportion ${(fin.cashInflowPct * 100).toFixed(1)}% exceeds the threshold`,
         '建议提供更多非现金交易记录（发票、转账流水）以增加可核实性',
-        bo.defaultMaxCashInflowPct !== undefined ? 'BANK' : 'GLOBAL',
+        cfg.sourceConfigForCashInflowPct,
       ))
     }
   }
@@ -443,11 +431,11 @@ export function computeRiskFlagsImpl(
     if (conc !== null && conc > cfg.maxSingleCustomerConcentrationPct) {
       flags.push(mkRisk(
         RiskFlagType.HIGH_CUSTOMER_CONCENTRATION,
-        'MEDIUM',
+        cfg.customerConcentrationRiskSeverity,
         `单一客源占进账比例 ${(conc * 100).toFixed(1)}%，收入集中风险较高`,
         `Single customer accounts for ${(conc * 100).toFixed(1)}% of total inflows`,
         '建议开拓多元客户以分散收入风险，提供多份客户合同佐证',
-        bo.defaultMaxSingleCustomerConcentrationPct !== undefined ? 'BANK' : 'GLOBAL',
+        cfg.sourceConfigForConcentrationPct,
       ))
     }
   }
@@ -465,8 +453,7 @@ export function computeRiskFlagsImpl(
           `CTOS 分数 ${fin.ctosScore} 已达最低要求，但低于理想水平`,
           `CTOS score ${fin.ctosScore} passes the minimum but is below the preferred clean threshold`,
           '建议申请人查阅完整 CTOS 报告并纠正可修复的记录',
-          bankConfig.minCtosScore !== null
-          || bo.defaultCtosCleanThreshold !== undefined ? 'BANK' : 'GLOBAL',
+          cfg.sourceConfigForCtosCleanliness,
         ))
       }
     }
@@ -531,11 +518,11 @@ export function computeRiskFlagsImpl(
     if (debtRatio !== null && debtRatio > cfg.maxTotalDebtToAnnualRevenuePct) {
       flags.push(mkRisk(
         RiskFlagType.LEVERAGE_HIGH,
-        'MEDIUM',
+        cfg.leverageHighRiskSeverity,
         `总债务占年营收比例 ${debtRatio.toFixed(1)}%，杠杆率偏高`,
         `Total debt-to-revenue ratio ${debtRatio.toFixed(1)}% exceeds the threshold`,
         '建议先行偿还部分现有债务，或申请较低额度',
-        bo.defaultMaxTotalDebtToAnnualRevenuePct !== undefined ? 'BANK' : 'GLOBAL',
+        cfg.sourceConfigForLeverageRatio,
       ))
     }
   }
@@ -705,11 +692,26 @@ export function computeAmountRangeImpl(
     ? Math.max(lowerFromTurnover, productFloor)
     : productFloor
 
+  const resolvedFinalMin = isFinitePositive(rawFinalMin) ? rawFinalMin : null
+
+  // Guard: if the computed floor exceeds the ceiling (e.g. productConfig.minLoanAmount
+  // is larger than what all three methods can support), the range is incoherent.
+  // Return null/null rather than leaking finalMin > finalMax to callers.
+  if (resolvedFinalMin !== null && resolvedFinalMin > finalMax) {
+    return {
+      methods,
+      bindingMethod:       binding.method,
+      effectiveInflowUsed: effectiveInflow,
+      finalMin:            null,
+      finalMax:            null,
+    }
+  }
+
   return {
     methods,
     bindingMethod:       binding.method,
     effectiveInflowUsed: effectiveInflow,
-    finalMin:            isFinitePositive(rawFinalMin) ? rawFinalMin : null,
+    finalMin:            resolvedFinalMin,
     finalMax,
   }
 }
