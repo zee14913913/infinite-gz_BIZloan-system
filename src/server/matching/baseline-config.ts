@@ -113,6 +113,16 @@ export const GLOBAL_ENGINE_DEFAULTS_BASELINE: GlobalEngineDefaults = {
     fair:      600,  // [PLACEHOLDER]
   },
 
+  // -- Personal DSR band thresholds [PLACEHOLDER] ---------------------------
+  // Controls STRONG/ACCEPTABLE/MARGINAL/WEAK classification for directors.
+  // Source: INFINITE GZ 2026 handbook (replace in Phase 3 seeding).
+  personalDsrBands: {
+    strongMax:     40,  // [PLACEHOLDER] DSR < 40% → STRONG
+    acceptableMax: 60,  // [PLACEHOLDER] DSR < 60% → ACCEPTABLE
+    marginalMax:   75,  // [PLACEHOLDER] DSR < 75% → MARGINAL
+    // above marginalMax → WEAK
+  },
+
   // -- Risk flag default severities [PLACEHOLDER] ---------------------------
   defaultCashInflowRiskSeverity:             'MEDIUM', // [PLACEHOLDER]
   defaultCustomerConcentrationRiskSeverity:  'MEDIUM', // [PLACEHOLDER]

@@ -159,3 +159,101 @@ export async function aggregateBankAccounts(
     },
   })
 }
+
+// ---------------------------------------------------------------------------
+// Director personal DSR types
+// ---------------------------------------------------------------------------
+
+export interface DirectorIncomeItem {
+  income_type:  string
+  gross_monthly_amount: number
+  recognition_rate:     number   // 0.0–1.0
+}
+
+export interface DirectorPersonalLoanItem {
+  monthly_repayment: number
+}
+
+export interface DirectorDsrInput {
+  income_items:           DirectorIncomeItem[]
+  personal_loans:         DirectorPersonalLoanItem[]
+  /** If already computed by caller, these override the JSON derivation. */
+  total_recognized_monthly_income?:   number | null
+  total_personal_monthly_commitment?: number | null
+}
+
+export interface DirectorDsrResult {
+  totalRecognizedIncome:   number
+  totalMonthlyCommitment:  number
+  personalDsr:             number | null
+  creditBand:              'STRONG' | 'ACCEPTABLE' | 'MARGINAL' | 'WEAK' | null
+}
+
+// ---------------------------------------------------------------------------
+// computeDirectorPersonalDsr
+// All band thresholds come from baseline-config — no hardcoded numbers.
+// ---------------------------------------------------------------------------
+
+export function computeDirectorPersonalDsr(input: DirectorDsrInput): DirectorDsrResult {
+  const bands = GLOBAL_ENGINE_DEFAULTS_BASELINE.personalDsrBands
+
+  const totalRecognizedIncome =
+    input.total_recognized_monthly_income ??
+    input.income_items.reduce(
+      (sum, item) => sum + item.gross_monthly_amount * item.recognition_rate,
+      0,
+    )
+
+  const totalMonthlyCommitment =
+    input.total_personal_monthly_commitment ??
+    input.personal_loans.reduce((sum, l) => sum + l.monthly_repayment, 0)
+
+  if (totalRecognizedIncome <= 0) {
+    return { totalRecognizedIncome, totalMonthlyCommitment, personalDsr: null, creditBand: null }
+  }
+
+  const personalDsr = (totalMonthlyCommitment / totalRecognizedIncome) * 100
+
+  let creditBand: DirectorDsrResult['creditBand']
+  if      (personalDsr < bands.strongMax)     creditBand = 'STRONG'
+  else if (personalDsr < bands.acceptableMax) creditBand = 'ACCEPTABLE'
+  else if (personalDsr < bands.marginalMax)   creditBand = 'MARGINAL'
+  else                                        creditBand = 'WEAK'
+
+  return { totalRecognizedIncome, totalMonthlyCommitment, personalDsr, creditBand }
+}
+
+// ---------------------------------------------------------------------------
+// recalculateDirectorDsr
+// Reads director JSON fields from DB, computes DSR, writes results back.
+// ---------------------------------------------------------------------------
+
+export async function recalculateDirectorDsr(directorId: string) {
+  const director = await prisma.directorProfile.findUnique({ where: { id: directorId } })
+  if (!director) return null
+
+  let incomeItems: DirectorIncomeItem[] = []
+  let personalLoans: DirectorPersonalLoanItem[] = []
+
+  try { incomeItems  = JSON.parse(director.income_items_json  ?? '[]') } catch { /* ignore */ }
+  try { personalLoans = JSON.parse(director.personal_loans_json ?? '[]') } catch { /* ignore */ }
+
+  const result = computeDirectorPersonalDsr({
+    income_items:  incomeItems,
+    personal_loans: personalLoans,
+    total_recognized_monthly_income:   director.total_recognized_monthly_income,
+    total_personal_monthly_commitment: director.total_personal_monthly_commitment,
+  })
+
+  const updated = await prisma.directorProfile.update({
+    where: { id: directorId },
+    data: {
+      total_recognized_monthly_income:   result.totalRecognizedIncome   || null,
+      total_personal_monthly_commitment: result.totalMonthlyCommitment  || null,
+      calculated_personal_dsr:           result.personalDsr,
+      personal_credit_score:             result.creditBand ?? undefined,
+    },
+  })
+
+  return { ...updated, dsrResult: result }
+}

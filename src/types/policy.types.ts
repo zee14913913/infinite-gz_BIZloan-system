@@ -244,6 +244,16 @@ export interface GlobalEngineDefaults {
     // below fair → 'POOR'
   }
 
+  /**
+   * Personal DSR band thresholds for director/guarantor credit scoring.
+   * All values are exclusive upper bounds for the named band (DSR < bound → band).
+   */
+  personalDsrBands: {
+    strongMax:     number  // DSR% < this → STRONG
+    acceptableMax: number  // DSR% < this → ACCEPTABLE
+    marginalMax:   number  // DSR% < this → MARGINAL; above → WEAK
+  }
+
   // -- Risk flag default severities ------------------------------------------
   /**
    * Default severity for HIGH_CASH_INFLOW_PCT risk flag.

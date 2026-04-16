@@ -2,8 +2,60 @@
 
 import { useState, useCallback } from 'react'
 import FinancialsTab from './FinancialsTab'
+import DirectorsTab from './DirectorsTab'
+import MatchingTab from './MatchingTab'
+import SolutionDesignTab from './SolutionDesignTab'
 
 // ── Utility types (JSON-serialised from Prisma) ───────────────────────────────
+
+export type DirectorRow = {
+  id: string
+  full_name: string
+  ic_number: string
+  role: string
+  employer_type: string
+  employer_name: string
+  epf_continuous_months: number | null
+  epf_last_contribution_month: string | null
+  epf_account2_balance: number | null
+  ctos_score: number | null
+  ccris_status: string
+  ccris_notes: string | null
+  income_items_json: string | null
+  personal_loans_json: string | null
+  total_recognized_monthly_income: number | null
+  total_personal_monthly_commitment: number | null
+  calculated_personal_dsr: number | null
+  personal_credit_score: string | null
+}
+
+export type MatchingResultRow = {
+  id: string
+  product_id: string
+  overall_score: string
+  estimated_amount_min: number | null
+  estimated_amount_max: number | null
+  eligibility_flags_json: string | null
+  risk_flags_json: string | null
+  amount_breakdown_json: string | null
+  is_selected: boolean
+  selected_amount: number | null
+  selected_tenure_months: number | null
+  advisor_override_notes: string | null
+  calculated_at: string
+  product: {
+    id: string
+    product_code: string
+    product_name_zh: string
+    product_name_en: string
+    loan_structure: string
+    guarantee_scheme: string
+    bank: {
+      code: string
+      name_zh: string
+    }
+  }
+}
 
 export type CaseDetailProps = {
   case_: {
@@ -81,8 +133,8 @@ export type CaseDetailProps = {
         title_type: string | null
       }[]
     }
-    directors: unknown[]
-    matching_results: unknown[]
+    directors: DirectorRow[]
+    matching_results: MatchingResultRow[]
   }
 }
 
@@ -109,6 +161,8 @@ const TABS = [
 export default function CaseDetailClient({ case_ }: CaseDetailProps) {
   const [activeTab, setActiveTab] = useState('financials')
   const [financials, setFinancials] = useState(case_.financials)
+  const [directors, setDirectors]   = useState<DirectorRow[]>(case_.directors)
+  const [matchingResults, setMatchingResults] = useState<MatchingResultRow[]>(case_.matching_results)
 
   const handleFinancialsUpdate = useCallback((updated: CaseDetailProps['case_']['financials']) => {
     setFinancials(updated)
@@ -153,32 +207,36 @@ export default function CaseDetailClient({ case_ }: CaseDetailProps) {
             className={`tab-btn${activeTab === t.key ? ' active' : ''}`}
             onClick={() => setActiveTab(t.key)}>
             {t.label}
+            {t.key === 'matching' && matchingResults.length > 0 && (
+              <span style={{ marginLeft: 6, background: 'var(--color-accent-subtle)', borderRadius: 10,
+                padding: '1px 7px', fontSize: 11, fontFamily: 'var(--font-inter)' }}>
+                {matchingResults.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       {activeTab === 'financials' && (
-        <FinancialsTab
-          caseId={case_.id}
-          financials={financials}
-          onUpdate={handleFinancialsUpdate}
-        />
+        <FinancialsTab caseId={case_.id} financials={financials} onUpdate={handleFinancialsUpdate} />
       )}
       {activeTab === 'directors' && (
-        <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 48 }}>
-          董事信用评估 — Phase 4 实现
-        </div>
+        <DirectorsTab caseId={case_.id} directors={directors} onUpdate={setDirectors} />
       )}
       {activeTab === 'matching' && (
-        <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 48 }}>
-          匹配结果 — Phase 4 实现
-        </div>
+        <MatchingTab
+          caseId={case_.id}
+          results={matchingResults}
+          onResultsUpdate={setMatchingResults}
+        />
       )}
       {activeTab === 'solution' && (
-        <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 48 }}>
-          方案设计 — Phase 4 实现
-        </div>
+        <SolutionDesignTab
+          caseId={case_.id}
+          results={matchingResults}
+          onResultsUpdate={setMatchingResults}
+        />
       )}
       {activeTab === 'docs' && (
         <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 48 }}>

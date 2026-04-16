@@ -21,7 +21,7 @@ export default async function CaseDetailPage({ params }: Props) {
       directors: { orderBy: { created_at: 'asc' } },
       matching_results: {
         include: { product: { include: { bank: true } } },
-        orderBy:  { calculated_at: 'desc' },
+        orderBy:  [{ overall_score: 'asc' }, { calculated_at: 'desc' }],
       },
     },
   })
