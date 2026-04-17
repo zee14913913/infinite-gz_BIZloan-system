@@ -10,7 +10,7 @@ export default async function BankDetailPage({ params }: Props) {
     where: { code: code.toUpperCase() },
     include: {
       products: {
-        include: { decisions: { orderBy: { field_name: 'asc' } } },
+        include: { decisions: { orderBy: { field_name: 'asc' } }, evidences: { orderBy: { created_at: 'desc' } } },
         orderBy: { product_code: 'asc' },
       },
     },

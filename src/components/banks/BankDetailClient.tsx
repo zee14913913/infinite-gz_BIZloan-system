@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
-import type { Bank, Product, FieldDecision } from '@/generated/prisma/client'
+import type { Bank, Product, FieldDecision, FieldEvidence } from '@/generated/prisma/client'
 import { BlockATab } from './BlockATab'
 import { BlockBTab } from './BlockBTab'
 import { BlockCEditor } from './BlockCEditor'
 import { RulesDecisionTab } from './RulesDecisionTab'
+import type { DecisionRow } from './RulesDecisionTab'
+import { EvidenceLibraryTab } from './EvidenceLibraryTab'
 import { ProductSheet } from './ProductSheet'
 
 interface BankWithProducts extends Bank {
-  products: (Product & { decisions: FieldDecision[] })[]
+  products: (Product & { decisions: FieldDecision[]; evidences: FieldEvidence[] })[]
 }
 
 const TABS = ['📋 Block A', '🔄 Block B', '📝 Block C', '🗂 Evidence', '⚖ Rules Decision']
@@ -76,7 +78,7 @@ export function BankDetailClient({ bank: initial }: { bank: BankWithProducts }) 
           p.id === saved.id ? { ...p, ...saved } : p
         )
       }
-      return [...prev, { ...saved, decisions: [] }]
+      return [...prev, { ...saved, decisions: [], evidences: [] }]
     })
     setSelectedId(saved.id)
     closeSheet()
@@ -196,21 +198,31 @@ export function BankDetailClient({ bank: initial }: { bank: BankWithProducts }) 
         )}
 
         {tab === 3 && (
-          <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <p style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-playfair)', fontSize: 18, marginBottom: 8 }}>
-              Evidence Library — Phase 5
-            </p>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
-              Evidence collection and cross-validation are implemented in Phase 5.
-            </p>
-          </div>
+          <>
+            <ProductSelector products={products} selectedId={selectedId} onSelect={setSelectedId} />
+            {selected ? (
+              <EvidenceLibraryTab productId={selected.id} />
+            ) : (
+              <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 32 }}>
+                Select a product above to view the evidence library.
+              </div>
+            )}
+          </>
         )}
 
         {tab === 4 && (
           <>
             <ProductSelector products={products} selectedId={selectedId} onSelect={setSelectedId} />
             {selected ? (
-              <RulesDecisionTab decisions={selected.decisions} />
+              <RulesDecisionTab
+                productId={selected.id}
+                decisions={selected.decisions as unknown as DecisionRow[]}
+                onDecisionsUpdate={(updated) => {
+                  setProducts(prev => prev.map(p =>
+                    p.id === selected.id ? { ...p, decisions: updated as unknown as typeof p.decisions } : p
+                  ))
+                }}
+              />
             ) : (
               <div className="card" style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 32 }}>
                 Select a product above to view rules decisions.
