@@ -31,6 +31,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     return ApiResponse.badRequest('full_name, ic_number, role, employer_type, employer_name are required')
   }
 
+  const VALID_ROLES       = new Set(['DIRECTOR', 'GUARANTOR', 'BOTH'])
+  const VALID_EMPLOYERS   = new Set(['GOVERNMENT', 'GLC', 'PLC', 'MNC', 'LARGE_PRIVATE', 'SME', 'SELF_EMPLOYED', 'OTHER'])
+  const VALID_CCRIS       = new Set(['CLEAN', 'MINOR_ISSUE', 'MAJOR_ISSUE', 'UNKNOWN'])
+
+  if (!VALID_ROLES.has(role)) {
+    return ApiResponse.badRequest(`Invalid role. Must be one of: ${[...VALID_ROLES].join(', ')}`)
+  }
+  if (!VALID_EMPLOYERS.has(employer_type)) {
+    return ApiResponse.badRequest(`Invalid employer_type. Must be one of: ${[...VALID_EMPLOYERS].join(', ')}`)
+  }
+  if (body.ccris_status && !VALID_CCRIS.has(body.ccris_status)) {
+    return ApiResponse.badRequest(`Invalid ccris_status. Must be one of: ${[...VALID_CCRIS].join(', ')}`)
+  }
+
   const director = await prisma.directorProfile.create({
     data: {
       case_id:       caseId,

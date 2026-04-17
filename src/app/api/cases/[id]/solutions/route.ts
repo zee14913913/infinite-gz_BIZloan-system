@@ -4,6 +4,8 @@ import ApiResponse from '@/lib/api-response'
 
 type Ctx = { params: Promise<{ id: string }> }
 
+const SCORE_PRIORITY: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2, INELIGIBLE: 3 }
+
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const { id: caseId } = await params
   const caseExists = await prisma.case.findUnique({ where: { id: caseId }, select: { id: true } })
@@ -12,8 +14,16 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const results = await prisma.matchingResult.findMany({
     where:   { case_id: caseId },
     include: { product: { include: { bank: true } } },
-    orderBy: [{ overall_score: 'asc' }, { calculated_at: 'desc' }],
+    orderBy: { calculated_at: 'desc' },
   })
+
+  // Sort by score priority (HIGH → MEDIUM → LOW → INELIGIBLE) then by recency
+  results.sort((a, b) => {
+    const pa = SCORE_PRIORITY[a.overall_score] ?? 9
+    const pb = SCORE_PRIORITY[b.overall_score] ?? 9
+    return pa - pb
+  })
+
   return ApiResponse.ok(results)
 }
 
@@ -44,6 +54,16 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
       return ApiResponse.badRequest(
         `selected_amount ${amt} is below engine minimum ${result.estimated_amount_min}`,
       )
+    }
+  }
+
+  // Enforce max-3 shortlist at the server level
+  if (is_selected === true || is_selected === 'true') {
+    const currentlySelected = await prisma.matchingResult.count({
+      where: { case_id: caseId, is_selected: true, id: { not: resultId } },
+    })
+    if (currentlySelected >= 3) {
+      return ApiResponse.badRequest('Maximum 3 products can be shortlisted per case')
     }
   }
 
