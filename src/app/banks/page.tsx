@@ -65,6 +65,7 @@ export default async function BanksPage() {
                 <th>BNM</th>
                 <th>Block A</th>
                 <th>Block B</th>
+                <th>待核实</th>
                 <th>Last Verified</th>
                 <th>Actions</th>
               </tr>
@@ -74,12 +75,14 @@ export default async function BanksPage() {
                 const n = bank.products.length
                 const avgA = n ? Math.round(bank.products.reduce((s, p) => s + p.block_a_completion_pct, 0) / n) : 0
                 const avgB = n ? Math.round(bank.products.reduce((s, p) => s + p.block_b_completion_pct, 0) / n) : 0
+                const staleProducts = bank.products.filter(p => isStale(p.last_verified_date)).length
                 const lastVerified = bank.products.reduce<Date | null>((latest, p) => {
                   if (!p.last_verified_date) return latest
                   if (!latest || p.last_verified_date > latest) return p.last_verified_date
                   return latest
                 }, null)
                 const stale = isStale(lastVerified)
+                const avgAColor = avgA >= 80 ? 'var(--color-credit)' : avgA >= 50 ? 'var(--color-status-pending)' : 'var(--color-status-alert)'
 
                 return (
                   <tr key={bank.id}>
@@ -114,10 +117,22 @@ export default async function BanksPage() {
                         : <span style={{ color: 'var(--color-text-muted)' }}>✗</span>}
                     </td>
                     <td style={{ minWidth: 110 }}>
-                      {n > 0 ? <ProgressBar pct={avgA} /> : <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
+                      {n > 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <ProgressBar pct={avgA} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: avgAColor, fontVariantNumeric: 'tabular-nums' }}>
+                            {avgA}%
+                          </span>
+                        </div>
+                      ) : <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
                     </td>
                     <td style={{ minWidth: 110 }}>
                       {n > 0 ? <ProgressBar pct={avgB} /> : <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {staleProducts > 0
+                        ? <span className="status-badge badge-conflict" style={{ fontSize: 11 }}>{staleProducts}</span>
+                        : <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>—</span>}
                     </td>
                     <td>
                       {lastVerified ? (
