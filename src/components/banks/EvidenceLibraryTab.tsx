@@ -56,19 +56,6 @@ export function EvidenceLibraryTab({ productId }: Props) {
   const [form, setForm]           = useState(EMPTY_FORM)
   const [expanded, setExpanded]   = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true); setError(null)
-      try {
-        const res  = await fetch(`/api/products/${productId}/evidence`)
-        const json = await res.json()
-        if (!res.ok) { setError(json.error ?? '加载失败'); return }
-        setEvidence(json.data ?? [])
-      } catch { setError('网络错误，请重试') } finally { setLoading(false) }
-    }
-    load()
-  }, [productId])
-
   async function loadEvidence() {
     setLoading(true); setError(null)
     try {
@@ -78,6 +65,9 @@ export function EvidenceLibraryTab({ productId }: Props) {
       setEvidence(json.data ?? [])
     } catch { setError('网络错误，请重试') } finally { setLoading(false) }
   }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadEvidence() }, [productId])
 
   function setField(k: string, v: string) { setForm(p => ({ ...p, [k]: v })) }
   function startAdd() { setForm(EMPTY_FORM); setAdding(true); setEditId(null); setError(null) }

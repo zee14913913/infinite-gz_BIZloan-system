@@ -13,6 +13,7 @@
 // =============================================================================
 
 import { prisma } from '@/lib/prisma'
+import { GLOBAL_ENGINE_DEFAULTS_BASELINE } from '@/server/matching/baseline-config'
 import type { FieldEvidence, FieldConfidence, ValueType } from '@/generated/prisma/client'
 
 // ---------------------------------------------------------------------------
@@ -95,14 +96,12 @@ interface ValidationResult {
   combinedSources: string
 }
 
-const CONFIRMED_MIN_WEIGHT  = 3.0   // ≥ 3 weighted sources in leading cluster → CONFIRMED
-const LIKELY_MIN_WEIGHT     = 1.5   // ≥ 1.5 weighted sources in leading cluster → LIKELY
-const CONFLICT_THRESHOLD    = 0.6   // runner-up cluster weight ÷ leader weight ≥ 0.6 → CONFLICT
-
 function assignConfidence(
   records: FieldEvidence[],
   clusters: ValueCluster[],
 ): ValidationResult {
+  const { confirmedMinWeight, likelyMinWeight, conflictThreshold } =
+    GLOBAL_ENGINE_DEFAULTS_BASELINE.crossValidationThresholds
   const allEvidenceIds = records.map(e => e.id)
   const allSources     = [...new Set(records.filter(e => e.source_url).map(e => e.source_url!))]
   const combinedSources = allSources.slice(0, 30).join(';')
@@ -123,11 +122,11 @@ function assignConfidence(
 
   // CONFLICT: a competing cluster accounts for >= threshold of the leader weight
   const hasConflict = runnerUp !== undefined
-    && runnerUp.totalWeight / leader.totalWeight >= CONFLICT_THRESHOLD
+    && runnerUp.totalWeight / leader.totalWeight >= conflictThreshold
 
   if (hasConflict) {
     return {
-      finalValue:    null,  // CONFLICT → no consensus value
+      finalValue:    null,
       confidence:    'CONFLICT',
       decisionBasis: `Conflict: "${leader.canonicalValue}" (weight ${leader.totalWeight.toFixed(1)}) vs "${runnerUp.canonicalValue}" (weight ${runnerUp.totalWeight.toFixed(1)}) — ${records.length} source(s) reviewed`,
       evidenceIds:   allEvidenceIds,
@@ -135,8 +134,7 @@ function assignConfidence(
     }
   }
 
-  // Single-source or low-weight cluster
-  if (leader.totalWeight >= CONFIRMED_MIN_WEIGHT) {
+  if (leader.totalWeight >= confirmedMinWeight) {
     return {
       finalValue:    leader.canonicalValue,
       confidence:    'CONFIRMED',
@@ -146,7 +144,7 @@ function assignConfidence(
     }
   }
 
-  if (leader.totalWeight >= LIKELY_MIN_WEIGHT) {
+  if (leader.totalWeight >= likelyMinWeight) {
     return {
       finalValue:    leader.canonicalValue,
       confidence:    'LIKELY',
@@ -212,14 +210,16 @@ export async function crossValidateProduct(productId: string): Promise<CrossVali
 
   for (const [key, records] of groups.entries()) {
     const [fieldName, stepTypePart] = key.split('|||')
-    const stepType = stepTypePart || null
+    // stepType stored as '' when null so the @@unique where key and create value are always consistent.
+    // NULL != NULL in SQLite unique indexes, so we never store null — always use '' for "no step_type".
+    const stepType = stepTypePart  // already '' when original was null (from `ev.step_type ?? ''` above)
 
     // Skip human-overridden decisions — do NOT overwrite
     const existing = await prisma.fieldDecision.findUnique({
       where: { product_id_field_name_step_type: {
         product_id: productId,
         field_name:  fieldName,
-        step_type:   stepType ?? '',
+        step_type:   stepType,
       }},
       select: { id: true, human_overridden: true },
     })
@@ -235,7 +235,7 @@ export async function crossValidateProduct(productId: string): Promise<CrossVali
       where: { product_id_field_name_step_type: {
         product_id: productId,
         field_name:  fieldName,
-        step_type:   stepType ?? '',
+        step_type:   stepType,
       }},
       create: {
         product_id:     productId,

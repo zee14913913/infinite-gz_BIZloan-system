@@ -254,6 +254,16 @@ export interface GlobalEngineDefaults {
     marginalMax:   number  // DSR% < this → MARGINAL; above → WEAK
   }
 
+  /**
+   * Confidence band thresholds for the cross-validation engine.
+   * Controls how weighted cluster scores are mapped to FieldConfidence values.
+   */
+  crossValidationThresholds: {
+    confirmedMinWeight: number  // leading cluster weight ≥ this → CONFIRMED
+    likelyMinWeight:    number  // leading cluster weight ≥ this → LIKELY; below → ESTIMATED
+    conflictThreshold:  number  // runner-up/leader weight ratio ≥ this → CONFLICT
+  }
+
   // -- Risk flag default severities ------------------------------------------
   /**
    * Default severity for HIGH_CASH_INFLOW_PCT risk flag.

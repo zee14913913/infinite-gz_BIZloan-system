@@ -123,6 +123,16 @@ export const GLOBAL_ENGINE_DEFAULTS_BASELINE: GlobalEngineDefaults = {
     // above marginalMax → WEAK
   },
 
+  // -- Cross-validation confidence thresholds [PLACEHOLDER] -----------------
+  // Controls the confidence band assigned by the cross-validation engine when
+  // grouping field evidence by weighted source clusters.
+  // Source: INFINITE GZ 2026 handbook (replace in Phase 3 seeding).
+  crossValidationThresholds: {
+    confirmedMinWeight: 3.0,  // [PLACEHOLDER] leading cluster total weight ≥ this → CONFIRMED
+    likelyMinWeight:    1.5,  // [PLACEHOLDER] leading cluster total weight ≥ this → LIKELY; below → ESTIMATED
+    conflictThreshold:  0.6,  // [PLACEHOLDER] runner-up/leader weight ratio ≥ this → CONFLICT
+  },
+
   // -- Risk flag default severities [PLACEHOLDER] ---------------------------
   defaultCashInflowRiskSeverity:             'MEDIUM', // [PLACEHOLDER]
   defaultCustomerConcentrationRiskSeverity:  'MEDIUM', // [PLACEHOLDER]

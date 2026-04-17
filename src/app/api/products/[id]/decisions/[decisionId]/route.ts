@@ -85,10 +85,10 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (error === 'notfound')  return ApiResponse.notFound('Decision not found')
   if (error === 'forbidden') return ApiResponse.forbidden('Decision does not belong to this product')
 
-  if (decision && !decision.human_overridden) {
-    // Only allow deletion of non-overridden decisions (re-run will regenerate engine decisions)
-    // Human-overridden decisions require explicit confirmation; caller should set
-    // human_overridden = false first, then delete if truly needed.
+  if (decision && decision.human_overridden) {
+    return ApiResponse.badRequest(
+      'Cannot delete a human-overridden decision. Set human_overridden = false first, then delete.',
+    )
   }
 
   // FieldDecisionEvidence rows are cascade-deleted via schema onDelete: Cascade
