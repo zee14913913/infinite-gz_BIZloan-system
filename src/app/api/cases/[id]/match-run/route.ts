@@ -16,13 +16,16 @@ import {
   GLOBAL_ENGINE_DEFAULTS_BASELINE,
   getTemporaryBankPolicyConfig,
 } from '@/server/matching/baseline-config'
+import { matchingQueue } from '@/lib/queues'
+import { auth } from '@/lib/auth'
+import type { MatchingJobData } from '@/types/jobs.types'
 
 const SCORE_ORDER: Record<string, number> = { HIGH: 0, MEDIUM: 1, LOW: 2, INELIGIBLE: 3 }
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: caseId } = await params
 
-  // ── Load case ─────────────────────────────────────────────────────────────
+  // ── Load case (needed for both sync and async paths to validate existence) ─
   const caseRecord = await prisma.case.findUnique({
     where: { id: caseId },
     include: {
@@ -32,7 +35,22 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   })
   if (!caseRecord) return ApiResponse.notFound(`Case ${caseId} not found`)
 
-  // ── Load candidate products ───────────────────────────────────────────────
+  const isAsync = req.nextUrl.searchParams.get('async') === 'true'
+
+  if (isAsync) {
+    const session = await auth()
+    const jobData: MatchingJobData = {
+      caseId,
+      triggeredBy: session?.user?.email ?? 'unknown',
+    }
+    const job = await matchingQueue.add('match-run', jobData)
+    return new Response(
+      JSON.stringify({ jobId: job.id, message: 'Matching run queued', queue: 'matching' }),
+      { status: 202, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+
+  // ── Synchronous path — unchanged ──────────────────────────────────────────
   const products = await prisma.product.findMany({
     where:   { is_active: true },
     include: { bank: true },
@@ -42,10 +60,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return ApiResponse.ok({ evaluated: 0, persisted: 0, topScores: [] })
   }
 
-  // ── Map case to engine shape ───────────────────────────────────────────────
-  const engineCase = mapCaseToEngineCase(caseRecord)
-
-  // ── Run engine + collect results ──────────────────────────────────────────
+  const engineCase     = mapCaseToEngineCase(caseRecord)
   const productResults = products.map(product => {
     const productConfig = mapProductToPolicyConfig(product)
     const bankConfig    = getTemporaryBankPolicyConfig(product.bank.code)
@@ -55,13 +70,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return { productId: product.id, engineResult, product }
   })
 
-  // ── Persist ───────────────────────────────────────────────────────────────
   const persisted = await persistMatchingResults(
     caseId,
     productResults.map(r => ({ productId: r.productId, engineResult: r.engineResult })),
   )
 
-  // ── Build top-3 summary for response ─────────────────────────────────────
   const sorted = [...productResults].sort(
     (a, b) => (SCORE_ORDER[a.engineResult.matchScore] ?? 9) - (SCORE_ORDER[b.engineResult.matchScore] ?? 9),
   )
