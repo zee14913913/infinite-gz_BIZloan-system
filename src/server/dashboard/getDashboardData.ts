@@ -94,6 +94,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     totalCases,
     allCases,
     overdueFollowUpRaw,
+    overdueFollowUpTotalCount,
     totalMatchingResults,
     matchGroupRaw,
     distinctCasesWithMatch,
@@ -116,13 +117,18 @@ export async function getDashboardData(): Promise<DashboardData> {
         client: { select: { company_name: true } } },
     }),
 
-    // 3. Overdue follow-up (< today, non-null)
+    // 3. Overdue follow-up display rows (capped at 5 for the dashboard list)
     prisma.case.findMany({
       where:  { follow_up_date: { lt: now }, status: { notIn: CLOSED_STATUSES } },
       select: { id: true, case_reference: true, follow_up_date: true, status: true, updated_at: true,
         client: { select: { company_name: true } } },
       orderBy: { follow_up_date: 'asc' },
       take: 5,
+    }),
+
+    // 3b. True total count of overdue follow-up cases (same where, no take limit)
+    prisma.case.count({
+      where: { follow_up_date: { lt: now }, status: { notIn: CLOSED_STATUSES } },
     }),
 
     // 4. Total matching results
@@ -239,7 +245,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   return {
     totalCases,
     casesByStatus,
-    overdueFollowUpCount:  overdueFollowUpRaw.length,
+    overdueFollowUpCount:  overdueFollowUpTotalCount,
     dueSoonFollowUpCount,
     overdueFollowUpCases:  overdueFollowUpRaw.map(c => ({
       id:            c.id,

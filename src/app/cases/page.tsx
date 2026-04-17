@@ -37,7 +37,12 @@ export default async function CasesPage({ searchParams }: PageProps) {
   const [cases, advisors] = await Promise.all([
     prisma.case.findMany({
       where: {
-        ...(status  && { status }),
+        // Default: show only active (non-closed) cases. Advisor can explicitly select
+        // CLOSED or REJECTED from the filter dropdown to override this default.
+        ...(status
+          ? { status }
+          : { status: { notIn: ['CLOSED', 'REJECTED', 'DISBURSED'] } }
+        ),
         ...(advisor && { advisor_id: advisor }),
         ...(urgency && { urgency: urgency as Urgency }),
       },
