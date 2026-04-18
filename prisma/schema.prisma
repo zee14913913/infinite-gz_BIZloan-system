@@ -265,6 +265,10 @@ model Product {
   block_a_completion_pct Float                 @default(0)
   block_b_completion_pct Float                 @default(0)
   last_verified_date     DateTime?
+  // v2 Intelligence fields: structured rules, signals, screening view
+  product_rules_json     String?               // product_rules[] from Step 3.1
+  product_signals_json   String?               // product_signals[] from Step 3.2
+  screening_view_json    String?               // Step 5 screening engine output
   matching_results       MatchingResult[]
   evidences              FieldEvidence[]
   decisions              FieldDecision[]
